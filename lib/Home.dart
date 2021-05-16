@@ -12,9 +12,12 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   
-  List _listatarefas = [];
+  List _listaCompras = [];
 
   TextEditingController _controllerCompra = TextEditingController();
+  TextEditingController _controllerValor = TextEditingController();
+
+
 
   Future<File> _getFile() async{
 
@@ -27,13 +30,15 @@ class _HomeState extends State<Home> {
     String textoDigitado = _controllerCompra.text;
     Map<String, dynamic> compra = Map();
     compra["titulo"] = textoDigitado;
+    compra["valor"] = "";
     compra["realizada"] = false;
 
     setState(() {
-      _listatarefas.add(compra);
+      _listaCompras.add(compra);
     });
     _salvarArquivo();
     _controllerCompra.text= "";
+    _controllerValor.text= "";
 
   }
 
@@ -42,9 +47,8 @@ class _HomeState extends State<Home> {
     var arquivo = await _getFile();
 
 
-    String lista = json.encode(_listatarefas);
+    String lista = json.encode(_listaCompras);
     arquivo.writeAsString(lista);
-    //print("Caminho: " + diretorio.path);
 
   }
 
@@ -68,7 +72,7 @@ class _HomeState extends State<Home> {
 
     _lerArquivo().then((dados){
       setState(() {
-        _listatarefas = json.decode(dados);
+        _listaCompras = json.decode(dados);
       });
     });
 
@@ -76,17 +80,16 @@ class _HomeState extends State<Home> {
   
   @override
   Widget build(BuildContext context) {
-    //_salvarArquivo();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.purple,
-        title: Text("Lista de tarefas"),
+        title: Text("Lista de compras"),
       ),
       body: Column(
         children: <Widget>[
            Expanded(
              child: ListView.builder(
-               itemCount: _listatarefas.length,
+               itemCount: _listaCompras.length,
                  itemBuilder: (context, index){
 
 
@@ -107,17 +110,60 @@ class _HomeState extends State<Home> {
                    direction: DismissDirection.endToStart,
                    onDismissed: (direction){
                       setState(() {
-                        _listatarefas.removeAt(index);
+                        _listaCompras.removeAt(index);
                       });
                       _salvarArquivo();
                    },
-                   key: Key(_listatarefas[index]['titulo']),
+                   key: Key(_listaCompras[index]['titulo']),
                    child: CheckboxListTile(
-                     title: Text(_listatarefas[index]['titulo']),
-                     value: _listatarefas[index]['realizada'],
+                     title: Text(_listaCompras[index]['titulo']),
+                     subtitle: Text(_listaCompras[index]['valor']),
+                     value: _listaCompras[index]['realizada'],
                      onChanged: (valorAlterado){
+                       if(valorAlterado == true){
+                         showDialog(
+                             context: context,
+                             builder: (context){
+                               return AlertDialog(
+                                 title: Text("Preço do Produto"),
+                                 content: TextField(
+                                   keyboardType: TextInputType.number,
+                                   controller: _controllerValor,
+                                   decoration: InputDecoration(
+                                       labelText: "Ex: 5.55"
+                                   ),
+                                   onChanged: (text){
+
+                                   },
+                                 ),
+                                 actions: <Widget>[
+                                   FlatButton(
+                                     child: Text("Cancelar"),
+                                     onPressed: ()=> Navigator.pop(context),
+                                   ),
+                                   FlatButton(
+                                     child: Text("Salvar"),
+                                     onPressed: (){
+                                       setState(() {
+
+                                         String textoValor = _controllerValor.text;
+                                         _listaCompras[index]['valor'] = textoValor;
+                                         _salvarArquivo();
+
+                                       });
+                                       Navigator.pop(context);
+                                     },
+                                   )
+                                 ],
+                               );
+                             }
+                         );
+                       }else{
+                         // tirar o valor da tela
+                         _listaCompras[index]['valor'] = "";
+                       }
                        setState(() {
-                         _listatarefas[index]['realizada'] = valorAlterado;
+                         _listaCompras[index]['realizada'] = valorAlterado;
                        });
                        _salvarArquivo();
                      },
@@ -135,28 +181,21 @@ class _HomeState extends State<Home> {
       ),
       floatingActionButtonLocation:
       FloatingActionButtonLocation.endFloat,
-      //floatingActionButton: FloatingActionButton.extended(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         elevation: 6,
-       //icon: Icon(Icons.add_shopping_cart),
-       //label: Text("Adicionar"),
-       /*shape: BeveledRectangleBorder(
-         borderRadius: BorderRadius.circular(20)
-       ),*/
-       // mini: true,
         child: Icon(Icons.add),
           onPressed: (){
             showDialog(
                 context: context,
               builder: (context){
                   return AlertDialog(
-                    title: Text("Adicionar Tarefa"),
+                    title: Text("Adicionar produto"),
                     content: TextField(
                       controller: _controllerCompra,
                       decoration: InputDecoration(
-                         labelText: "Digite sua tarefa"
+                         labelText: "Digite o produto"
                       ),
                       onChanged: (text){
 
