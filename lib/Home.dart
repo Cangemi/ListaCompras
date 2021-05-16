@@ -13,6 +13,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   
   List _listaCompras = [];
+  Map<String, dynamic> _ultimoProdutoRemovido = Map();
 
   TextEditingController _controllerCompra = TextEditingController();
   TextEditingController _controllerValor = TextEditingController();
@@ -62,7 +63,102 @@ class _HomeState extends State<Home> {
     }catch(e){
       return null;
     }
+  }
 
+  Widget criarItemLista(context, index){
+
+    return Dismissible(
+      background: Container(
+        color: Colors.purple,
+        padding: EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            Icon(
+              Icons.delete,
+              color: Colors.white,
+            )
+          ],
+        ),
+      ),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction){
+
+        _ultimoProdutoRemovido = _listaCompras[index];
+
+        _listaCompras.removeAt(index);
+        _salvarArquivo();
+
+        final snackbar = SnackBar(
+          duration: Duration(seconds: 5),
+          content: Text("Produto removido!"),
+          action: SnackBarAction(
+              label: "Desfazer",
+              onPressed: (){
+                setState(() {
+                  _listaCompras.insert(index, _ultimoProdutoRemovido);
+                });
+                _salvarArquivo();
+              }
+          ),
+        );
+        Scaffold.of(context).showSnackBar(snackbar);
+      },
+      key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
+      child: CheckboxListTile(
+        title: Text(_listaCompras[index]['titulo']),
+        subtitle: Text(_listaCompras[index]['valor']),
+        value: _listaCompras[index]['realizada'],
+        onChanged: (valorAlterado){
+          if(valorAlterado == true){
+            showDialog(
+                context: context,
+                builder: (context){
+                  return AlertDialog(
+                    title: Text("Preço do Produto"),
+                    content: TextField(
+                      keyboardType: TextInputType.number,
+                      controller: _controllerValor,
+                      decoration: InputDecoration(
+                          labelText: "Ex: 5.55"
+                      ),
+                      onChanged: (text){
+
+                      },
+                    ),
+                    actions: <Widget>[
+                      FlatButton(
+                        child: Text("Cancelar"),
+                        onPressed: ()=> Navigator.pop(context),
+                      ),
+                      FlatButton(
+                        child: Text("Salvar"),
+                        onPressed: (){
+                          setState(() {
+
+                            String textoValor = _controllerValor.text;
+                            _listaCompras[index]['valor'] = textoValor;
+                            _salvarArquivo();
+                            _controllerValor.text = "";
+                          });
+                          Navigator.pop(context);
+                        },
+                      )
+                    ],
+                  );
+                }
+            );
+          }else{
+            // tirar o valor da tela
+            _listaCompras[index]['valor'] = "";
+          }
+          setState(() {
+            _listaCompras[index]['realizada'] = valorAlterado;
+          });
+          _salvarArquivo();
+        },
+      ),
+    );
 
   }
 
@@ -90,91 +186,7 @@ class _HomeState extends State<Home> {
            Expanded(
              child: ListView.builder(
                itemCount: _listaCompras.length,
-                 itemBuilder: (context, index){
-
-
-                 return Dismissible(
-                   background: Container(
-                     color: Colors.purple,
-                     padding: EdgeInsets.all(16),
-                     child: Row(
-                       mainAxisAlignment: MainAxisAlignment.end,
-                       children: <Widget>[
-                         Icon(
-                         Icons.delete,
-                       color: Colors.white,
-                     )
-                       ],
-                     ),
-                   ),
-                   direction: DismissDirection.endToStart,
-                   onDismissed: (direction){
-                      setState(() {
-                        _listaCompras.removeAt(index);
-                      });
-                      _salvarArquivo();
-                   },
-                   key: Key(_listaCompras[index]['titulo']),
-                   child: CheckboxListTile(
-                     title: Text(_listaCompras[index]['titulo']),
-                     subtitle: Text(_listaCompras[index]['valor']),
-                     value: _listaCompras[index]['realizada'],
-                     onChanged: (valorAlterado){
-                       if(valorAlterado == true){
-                         showDialog(
-                             context: context,
-                             builder: (context){
-                               return AlertDialog(
-                                 title: Text("Preço do Produto"),
-                                 content: TextField(
-                                   keyboardType: TextInputType.number,
-                                   controller: _controllerValor,
-                                   decoration: InputDecoration(
-                                       labelText: "Ex: 5.55"
-                                   ),
-                                   onChanged: (text){
-
-                                   },
-                                 ),
-                                 actions: <Widget>[
-                                   FlatButton(
-                                     child: Text("Cancelar"),
-                                     onPressed: ()=> Navigator.pop(context),
-                                   ),
-                                   FlatButton(
-                                     child: Text("Salvar"),
-                                     onPressed: (){
-                                       setState(() {
-
-                                         String textoValor = _controllerValor.text;
-                                         _listaCompras[index]['valor'] = textoValor;
-                                         _salvarArquivo();
-
-                                       });
-                                       Navigator.pop(context);
-                                     },
-                                   )
-                                 ],
-                               );
-                             }
-                         );
-                       }else{
-                         // tirar o valor da tela
-                         _listaCompras[index]['valor'] = "";
-                       }
-                       setState(() {
-                         _listaCompras[index]['realizada'] = valorAlterado;
-                       });
-                       _salvarArquivo();
-                     },
-                   ),
-                 );
-
-
-                /* return ListTile(
-                   title: Text(_listatarefas[index]['titulo']),
-                 );*/
-                 }
+                 itemBuilder: criarItemLista
              ),
            )
         ],
