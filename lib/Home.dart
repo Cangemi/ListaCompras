@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
@@ -11,14 +12,15 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  
+
+  double _valor;
+
   List _listaCompras = [];
   Map<String, dynamic> _ultimoProdutoRemovido = Map();
 
   TextEditingController _controllerCompra = TextEditingController();
   TextEditingController _controllerValor = TextEditingController();
-
-
+  TextEditingController _controllerQuantidade = TextEditingController();
 
   Future<File> _getFile() async{
 
@@ -31,7 +33,8 @@ class _HomeState extends State<Home> {
     String textoDigitado = _controllerCompra.text;
     Map<String, dynamic> compra = Map();
     compra["titulo"] = textoDigitado;
-    compra["valor"] = "";
+    compra["valor"] = "0,00";
+    compra["quantidade"]="";
     compra["realizada"] = false;
 
     setState(() {
@@ -39,7 +42,6 @@ class _HomeState extends State<Home> {
     });
     _salvarArquivo();
     _controllerCompra.text= "";
-    _controllerValor.text= "";
 
   }
 
@@ -67,6 +69,15 @@ class _HomeState extends State<Home> {
 
   Widget criarItemLista(context, index){
 
+    String _quantidadeProduto = "";
+
+
+    if(_listaCompras[index]["quantidade"] != ""){
+      _quantidadeProduto = "${_listaCompras[index]["quantidade"]}x  ${_listaCompras[index]['titulo']}";
+    }else{
+      _quantidadeProduto = "${_listaCompras[index]['titulo']}";
+    }
+
     return Dismissible(
       background: Container(
         color: Colors.purple,
@@ -90,7 +101,6 @@ class _HomeState extends State<Home> {
         _salvarArquivo();
 
         final snackbar = SnackBar(
-          duration: Duration(seconds: 5),
           content: Text("Produto removido!"),
           action: SnackBarAction(
               label: "Desfazer",
@@ -106,8 +116,13 @@ class _HomeState extends State<Home> {
       },
       key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
       child: CheckboxListTile(
-        title: Text(_listaCompras[index]['titulo']),
-        subtitle: Text(_listaCompras[index]['valor']),
+        title: Text(
+            _quantidadeProduto,
+          style: TextStyle(
+            fontSize: 25
+          ),
+        ),
+        subtitle: Text("R\$ ${_listaCompras[index]['valor']}"),
         value: _listaCompras[index]['realizada'],
         onChanged: (valorAlterado){
           if(valorAlterado == true){
@@ -116,15 +131,31 @@ class _HomeState extends State<Home> {
                 builder: (context){
                   return AlertDialog(
                     title: Text("Preço do Produto"),
-                    content: TextField(
-                      keyboardType: TextInputType.number,
-                      controller: _controllerValor,
-                      decoration: InputDecoration(
-                          labelText: "Ex: 5.55"
-                      ),
-                      onChanged: (text){
+                    content: SingleChildScrollView(
+                      child: Column(
+                        children: <Widget>[
+                          TextField(
+                            keyboardType: TextInputType.number,
+                            controller: _controllerValor,
+                            decoration: InputDecoration(
+                                labelText: "Valor unitário"
+                            ),
+                            onChanged: (text){
 
-                      },
+                            },
+                          ),
+                          TextField(
+                            keyboardType: TextInputType.number,
+                            controller: _controllerQuantidade,
+                            decoration: InputDecoration(
+                                labelText: "Quantidade de produtos"
+                            ),
+                            onChanged: (text){
+
+                            },
+                          )
+                        ],
+                      ),
                     ),
                     actions: <Widget>[
                       FlatButton(
@@ -135,11 +166,17 @@ class _HomeState extends State<Home> {
                         child: Text("Salvar"),
                         onPressed: (){
                           setState(() {
+                            _valor = double.tryParse( _controllerValor.text.replaceAll(',', '.')) + 0.00;
+                            _controllerValor.text = _valor.toStringAsFixed(2).replaceAll('.',',');
+
 
                             String textoValor = _controllerValor.text;
+                            String textoQuantidade = _controllerQuantidade.text;
                             _listaCompras[index]['valor'] = textoValor;
+                            _listaCompras[index]['quantidade'] = textoQuantidade;
                             _salvarArquivo();
                             _controllerValor.text = "";
+                            _controllerQuantidade.text = "";
                           });
                           Navigator.pop(context);
                         },
@@ -150,7 +187,8 @@ class _HomeState extends State<Home> {
             );
           }else{
             // tirar o valor da tela
-            _listaCompras[index]['valor'] = "";
+            _listaCompras[index]['quantidade'] = "";
+            _listaCompras[index]['valor'] = "0,00";
           }
           setState(() {
             _listaCompras[index]['realizada'] = valorAlterado;
@@ -176,6 +214,7 @@ class _HomeState extends State<Home> {
   
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.purple,
@@ -192,7 +231,7 @@ class _HomeState extends State<Home> {
         ],
       ),
       floatingActionButtonLocation:
-      FloatingActionButtonLocation.endFloat,
+      FloatingActionButtonLocation.endDocked,
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
@@ -231,17 +270,26 @@ class _HomeState extends State<Home> {
             );
           }
       ),
-     /* bottomNavigationBar: BottomAppBar(
-        //shape: CircularNotchedRectangle(),
+      bottomNavigationBar: BottomAppBar(
+        shape: CircularNotchedRectangle(),
         child: Row(
           children: <Widget>[
-            IconButton(
-              onPressed: (){},
-              icon: Icon(Icons.add),
+            Padding(
+              padding: EdgeInsets.all(10),
+              child: Icon(
+                  Icons.shopping_cart,
+                size: 50,
+              ),
+            ),
+            Text(
+                "R\$ 00,00",
+              style: TextStyle(
+                fontSize: 40,
+              ),
             )
           ],
         ),
-      ),*/
+      ),
     );
   }
 }
