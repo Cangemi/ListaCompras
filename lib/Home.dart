@@ -14,6 +14,8 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
 
   double _valor;
+  double _total = 0.00;
+  String _textoTotal = "0,00";
 
   List _listaCompras = [];
   Map<String, dynamic> _ultimoProdutoRemovido = Map();
@@ -34,7 +36,7 @@ class _HomeState extends State<Home> {
     Map<String, dynamic> compra = Map();
     compra["titulo"] = textoDigitado;
     compra["valor"] = "0,00";
-    compra["quantidade"]="";
+    compra["quantidade"]="0";
     compra["realizada"] = false;
 
     setState(() {
@@ -67,12 +69,28 @@ class _HomeState extends State<Home> {
     }
   }
 
+  _totalCompra(){
+    double _v;
+    double _quantidade;
+    _total = 0.00;
+    setState(() {
+      print(_listaCompras);
+      for(int i =0; i< _listaCompras.length; i++) {
+        _v = double.tryParse(_listaCompras[i]["valor"].replaceAll(',', '.'));
+        _quantidade = double.tryParse(_listaCompras[i]["quantidade"].replaceAll(',', '.'));
+        _total += _v * _quantidade;
+        print(_total);
+      }
+      _textoTotal = _total.toStringAsFixed(2).replaceAll('.',',');
+    });
+  }
+
   Widget criarItemLista(context, index){
 
     String _quantidadeProduto = "";
 
 
-    if(_listaCompras[index]["quantidade"] != ""){
+    if(_listaCompras[index]["quantidade"] != "0"){
       _quantidadeProduto = "${_listaCompras[index]["quantidade"]}x  ${_listaCompras[index]['titulo']}";
     }else{
       _quantidadeProduto = "${_listaCompras[index]['titulo']}";
@@ -99,6 +117,7 @@ class _HomeState extends State<Home> {
 
         _listaCompras.removeAt(index);
         _salvarArquivo();
+        _totalCompra();
 
         final snackbar = SnackBar(
           content: Text("Produto removido!"),
@@ -109,6 +128,7 @@ class _HomeState extends State<Home> {
                   _listaCompras.insert(index, _ultimoProdutoRemovido);
                 });
                 _salvarArquivo();
+                _totalCompra();
               }
           ),
         );
@@ -179,6 +199,8 @@ class _HomeState extends State<Home> {
                             _controllerQuantidade.text = "";
                           });
                           Navigator.pop(context);
+                          _totalCompra();
+                          print(_total);
                         },
                       )
                     ],
@@ -187,8 +209,9 @@ class _HomeState extends State<Home> {
             );
           }else{
             // tirar o valor da tela
-            _listaCompras[index]['quantidade'] = "";
+            _listaCompras[index]['quantidade'] = "0";
             _listaCompras[index]['valor'] = "0,00";
+            _totalCompra();
           }
           setState(() {
             _listaCompras[index]['realizada'] = valorAlterado;
@@ -197,7 +220,6 @@ class _HomeState extends State<Home> {
         },
       ),
     );
-
   }
 
   @override
@@ -207,10 +229,13 @@ class _HomeState extends State<Home> {
     _lerArquivo().then((dados){
       setState(() {
         _listaCompras = json.decode(dados);
+        _totalCompra();
       });
     });
-
+    //_totalCompra();
   }
+
+
   
   @override
   Widget build(BuildContext context) {
@@ -270,6 +295,7 @@ class _HomeState extends State<Home> {
             );
           }
       ),
+
       bottomNavigationBar: BottomAppBar(
         shape: CircularNotchedRectangle(),
         child: Row(
@@ -282,7 +308,7 @@ class _HomeState extends State<Home> {
               ),
             ),
             Text(
-                "R\$ 00,00",
+                "R\$ $_textoTotal",
               style: TextStyle(
                 fontSize: 40,
               ),
